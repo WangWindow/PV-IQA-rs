@@ -3,6 +3,11 @@ name = "pv-iqa-rs"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+cudnn = ["cuda", "candle-core/cudnn", "candle-nn/cudnn"]
+
 [dependencies]
 anyhow = "1.0.102"
 axum = "0.8.8"
