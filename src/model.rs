@@ -9,8 +9,7 @@ use candle_core::{DType, Device, Tensor};
 use candle_onnx::{
     dtype,
     onnx::{self, ModelProto, tensor_proto::DataType},
-    read_file,
-    simple_eval,
+    read_file, simple_eval,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
@@ -170,11 +169,23 @@ fn tensor_from_proto(tensor: &onnx::TensorProto, name: &str, device: &Device) ->
         Ok(data_type) => match dtype(data_type) {
             Some(dtype) => {
                 if dtype == DType::F32 && !tensor.float_data.is_empty() {
-                    Ok(Tensor::from_slice(&tensor.float_data, dims.as_slice(), device)?)
+                    Ok(Tensor::from_slice(
+                        &tensor.float_data,
+                        dims.as_slice(),
+                        device,
+                    )?)
                 } else if dtype == DType::F64 && !tensor.double_data.is_empty() {
-                    Ok(Tensor::from_slice(&tensor.double_data, dims.as_slice(), device)?)
+                    Ok(Tensor::from_slice(
+                        &tensor.double_data,
+                        dims.as_slice(),
+                        device,
+                    )?)
                 } else if dtype == DType::I64 && !tensor.int64_data.is_empty() {
-                    Ok(Tensor::from_slice(&tensor.int64_data, dims.as_slice(), device)?)
+                    Ok(Tensor::from_slice(
+                        &tensor.int64_data,
+                        dims.as_slice(),
+                        device,
+                    )?)
                 } else {
                     Ok(Tensor::from_raw_buffer(
                         tensor.raw_data.as_slice(),

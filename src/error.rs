@@ -23,6 +23,8 @@ pub enum AppError {
     #[error(transparent)]
     Image(#[from] image::ImageError),
     #[error(transparent)]
+    Jpeg(#[from] jpeg_decoder::Error),
+    #[error(transparent)]
     WalkDir(#[from] walkdir::Error),
     #[error(transparent)]
     Join(#[from] tokio::task::JoinError),
@@ -42,9 +44,16 @@ impl IntoResponse for AppError {
             | Self::Json(_)
             | Self::Candle(_)
             | Self::Image(_)
+            | Self::Jpeg(_)
             | Self::WalkDir(_)
             | Self::Join(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
-        (status, Json(ErrorBody { error: self.to_string() })).into_response()
+        (
+            status,
+            Json(ErrorBody {
+                error: self.to_string(),
+            }),
+        )
+            .into_response()
     }
 }

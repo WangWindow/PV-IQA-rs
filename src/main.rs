@@ -4,13 +4,7 @@ mod model;
 mod preprocess;
 mod types;
 
-use std::{
-    env,
-    net::SocketAddr,
-    path::PathBuf,
-    sync::Arc,
-    time::Instant,
-};
+use std::{env, net::SocketAddr, path::PathBuf, sync::Arc, time::Instant};
 
 use axum::{
     Json, Router,
@@ -135,8 +129,11 @@ async fn score_batch(
 
     let results = tokio::task::spawn_blocking(move || {
         if loaded.supports_dynamic_batch() {
-            let tensor =
-                load_images_to_tensor(&image_paths_for_inference, &loaded.metadata, device.as_ref())?;
+            let tensor = load_images_to_tensor(
+                &image_paths_for_inference,
+                &loaded.metadata,
+                device.as_ref(),
+            )?;
             let scores = loaded.score_tensor(tensor)?;
             if scores.len() != image_paths_for_inference.len() {
                 return Err(AppError::InvalidRequest(format!(
@@ -158,7 +155,8 @@ async fn score_batch(
         } else {
             let mut results = Vec::with_capacity(image_paths_for_inference.len());
             for path in image_paths_for_inference {
-                let tensor = load_image_to_tensor(path.as_path(), &loaded.metadata, device.as_ref())?;
+                let tensor =
+                    load_image_to_tensor(path.as_path(), &loaded.metadata, device.as_ref())?;
                 let score = loaded
                     .score_tensor(tensor)?
                     .into_iter()
