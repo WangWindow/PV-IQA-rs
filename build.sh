@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}" && pwd)"
 
 PROFILE="release"
 BUILD_CPU=1
@@ -19,7 +19,7 @@ Usage:
 
 Options:
   --repo-root <path>       PV-IQA 主仓库根目录
-  --publish-dir <path>     二进制发布目录；默认 <repo-root>/bin
+  --publish-dir <path>     二进制发布目录；默认 <repo-root>/app/bin
   --profile <release|debug>
                            构建 profile，默认 release
   --cuda-features <value>  CUDA 版使用的 Cargo features，默认 cuda
@@ -83,7 +83,7 @@ if [[ "${BUILD_CPU}" -eq 0 && "${BUILD_CUDA}" -eq 0 ]]; then
 fi
 
 if [[ -z "${PUBLISH_DIR}" ]]; then
-  PUBLISH_DIR="${REPO_ROOT}/bin"
+  PUBLISH_DIR="${REPO_ROOT}/app/bin"
 fi
 
 mkdir -p "${PUBLISH_DIR}"
@@ -124,6 +124,15 @@ build_variant() {
   cp "${source_path}" "${output_path}"
   chmod +x "${output_path}" || true
   echo "[publish] ${output_path}"
+
+  local short_name="pv-iqa-${variant}"
+  if [[ "${BINARY_NAME}" == *.exe ]]; then
+    short_name="${short_name}.exe"
+  fi
+  local short_path="${PUBLISH_DIR}/${short_name}"
+  cp "${source_path}" "${short_path}"
+  chmod +x "${short_path}" || true
+  echo "[publish] ${short_path}"
 }
 
 cd "${PROJECT_ROOT}"

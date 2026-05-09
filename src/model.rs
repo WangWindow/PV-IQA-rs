@@ -18,7 +18,9 @@ use crate::error::{AppError, AppResult};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RustModelMetadata {
+    #[serde(default)]
     pub checkpoint_path: String,
+    #[serde(default)]
     pub model_path: String,
     pub input_name: String,
     pub output_name: String,
@@ -26,6 +28,7 @@ pub struct RustModelMetadata {
     pub grayscale_to_rgb: bool,
     pub normalize_mean: Vec<f32>,
     pub normalize_std: Vec<f32>,
+    #[serde(default)]
     pub opset_version: i64,
     #[serde(default)]
     pub dynamic_batch: bool,
@@ -81,8 +84,14 @@ impl LoadedRun {
 
     pub fn score_tensor(&self, input: Tensor) -> AppResult<Vec<f32>> {
         let mut values = self.initializers.clone();
+        // On CUDA, candle-onnx may create intermediate CPU tensors during Gemm/MatMul.
+        // Ensure ALL initializers are on the input device as a safety net.
+        let target_device = input.device().clone();
+        for (_name, tensor) in values.iter_mut() {
+            let _ = tensor.to_device(&target_device);
+        }
         values.insert(self.metadata.input_name.clone(), input);
-        let outputs = simple_eval(&self.model, values)?;
+        let outputs = simple_eval(&self.model, values, &target_device)?;
         let score = outputs.get(&self.metadata.output_name).ok_or_else(|| {
             AppError::NotFound(format!(
                 "ONNX output '{}' was not produced for run '{}'",
@@ -92,9 +101,6 @@ impl LoadedRun {
         Ok(score.flatten_all()?.to_vec1::<f32>()?)
     }
 
-    pub fn supports_dynamic_batch(&self) -> bool {
-        self.metadata.dynamic_batch
-    }
 }
 
 #[derive(Clone)]
@@ -132,17 +138,6 @@ impl ModelStore {
             .entry(run_name.to_string())
             .or_insert_with(|| loaded.clone());
         Ok(entry.clone())
-    }
-
-    pub async fn cached_runs(&self) -> Vec<String> {
-        let cache = self.cache.read().await;
-        let mut runs = cache.keys().cloned().collect::<Vec<_>>();
-        runs.sort();
-        runs
-    }
-
-    pub fn repo_root(&self) -> &Path {
-        &self.repo_root
     }
 }
 

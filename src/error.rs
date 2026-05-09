@@ -1,9 +1,3 @@
-use axum::{
-    Json,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use serde::Serialize;
 use thiserror::Error;
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -23,37 +17,17 @@ pub enum AppError {
     #[error(transparent)]
     Image(#[from] image::ImageError),
     #[error(transparent)]
-    Jpeg(#[from] jpeg_decoder::Error),
-    #[error(transparent)]
     WalkDir(#[from] walkdir::Error),
-    #[error(transparent)]
-    Join(#[from] tokio::task::JoinError),
 }
 
-#[derive(Serialize)]
-struct ErrorBody {
-    error: String,
+impl From<tokio::task::JoinError> for AppError {
+    fn from(e: tokio::task::JoinError) -> Self {
+        AppError::InvalidRequest(e.to_string())
+    }
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let status = match self {
-            Self::InvalidRequest(_) => StatusCode::BAD_REQUEST,
-            Self::NotFound(_) => StatusCode::NOT_FOUND,
-            Self::Io(_)
-            | Self::Json(_)
-            | Self::Candle(_)
-            | Self::Image(_)
-            | Self::Jpeg(_)
-            | Self::WalkDir(_)
-            | Self::Join(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        };
-        (
-            status,
-            Json(ErrorBody {
-                error: self.to_string(),
-            }),
-        )
-            .into_response()
+impl From<jpeg_decoder::Error> for AppError {
+    fn from(e: jpeg_decoder::Error) -> Self {
+        AppError::InvalidRequest(e.to_string())
     }
 }

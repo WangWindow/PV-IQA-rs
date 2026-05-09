@@ -2,3 +2,4 @@
 /target-release*
 
 Cargo.lock
+*.bak

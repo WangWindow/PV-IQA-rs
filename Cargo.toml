@@ -10,28 +10,24 @@ cudnn = ["cuda", "candle-core/cudnn", "candle-nn/cudnn"]
 
 [dependencies]
 anyhow = "1.0.102"
-axum = "0.8.8"
 candle-core = "0.10.2"
 candle-nn = "0.10.2"
 candle-onnx = "0.10.2"
-chrono = "0.4.44"
+clap = { version = "4", features = ["derive"] }
 fast_image_resize = { version = "6.0.0", features = ["image"] }
 image = "0.25.10"
 jpeg-decoder = "0.3.2"
-rand = "0.10.0"
+rand = "0.10.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.18"
-tokio = { version = "1.51.0", features = ["full"] }
-tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = [
-    "env-filter",
-    "fmt",
-    "time",
-] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 walkdir = "2.5.0"
 
 [profile.release]
 lto = "thin"
 codegen-units = 1
 strip = true
+
+[patch.crates-io]
+candle-onnx = { path = "candle-onnx" }
