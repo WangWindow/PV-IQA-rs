@@ -27,6 +27,10 @@ struct Cli {
     /// Output format: json or jsonl
     #[arg(long, default_value = "json")]
     output: String,
+
+    /// Suppress status messages (only JSON to stdout)
+    #[arg(long, default_value_t = false)]
+    quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -78,8 +82,6 @@ fn main() -> anyhow::Result<()> {
 
     unsafe { std::env::set_var("PV_IQA_RS_DEVICE", &cli.device); }
     let runtime_device = RuntimeDevice::from_env()?;
-    eprintln!("device: {}", runtime_device.label());
-
     let device_handle = runtime_device.handle();
 
     let model_path = match &cli.command {
@@ -87,6 +89,14 @@ fn main() -> anyhow::Result<()> {
     };
 
     let (repo_root, run_name) = extract_run_context(&model_path);
+
+    if !cli.quiet {
+        eprintln!("pv-iqa v{}", env!("CARGO_PKG_VERSION"));
+        eprintln!("  model : {}", model_path.display());
+        eprintln!("  run   : {}", run_name);
+        eprintln!("  device: {}", runtime_device.label());
+    }
+
     let model_store = ModelStore::new(repo_root, device_handle.clone());
 
     let loaded: Arc<LoadedRun> = tokio::runtime::Runtime::new()
@@ -112,8 +122,12 @@ fn main() -> anyhow::Result<()> {
             if image_paths.is_empty() {
                 anyhow::bail!("No images found in {}", dir.display());
             }
-            let mut results = Vec::with_capacity(image_paths.len());
-            for path in &image_paths {
+            let total = image_paths.len();
+            if !cli.quiet {
+                eprintln!("  images: {}", total);
+            }
+            let mut results = Vec::with_capacity(total);
+            for (i, path) in image_paths.iter().enumerate() {
                 let tensor = preprocess::load_image_to_tensor(
                     path.as_path(),
                     &loaded.metadata,
@@ -124,6 +138,7 @@ fn main() -> anyhow::Result<()> {
                     image_path: path.display().to_string(),
                     quality_score: score.into_iter().next().unwrap_or(0.0),
                 });
+                eprintln!("PROGRESS:{}/{}", i + 1, total);
             }
             println!("{}", serde_json::to_string(&results)?);
         }
